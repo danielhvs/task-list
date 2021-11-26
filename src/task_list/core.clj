@@ -6,7 +6,8 @@
 (defonce server (atom nil))
 
 (defn respond-hello [request]
-  {:status 200 :body request})
+  (let [nm (get-in request [:query-params :name])]
+    {:status 200 :body (str "Hello, " nm "\n")}))
 
 (def routes
   (route/expand-routes
@@ -31,5 +32,4 @@
   (stop-dev)
   (start-dev))
 
-(comment
-  (restart))
+(restart)
