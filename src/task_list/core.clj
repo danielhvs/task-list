@@ -6,7 +6,7 @@
 (defonce server (atom nil))
 
 (defn respond-hello [request]
-  {:status 200 :body "Hello, world!"})
+  {:status 200 :body request})
 
 (def routes
   (route/expand-routes
@@ -24,7 +24,8 @@
                           ::http/join? false)))))
 
 (defn stop-dev []
-  (http/stop @server))
+  (when @server
+    (http/stop @server)))
 
 (defn restart []
   (stop-dev)
