@@ -18,18 +18,20 @@
    ::http/type :jetty
    ::http/port 8890})
 
+(defn stop-dev []
+  (when @server
+    (http/stop @server)))
+
 (defn start-dev []
   (reset! server
           (http/start (http/create-server
                         (assoc service-map
                           ::http/join? false)))))
 
-(defn stop-dev []
-  (when @server
-    (http/stop @server)))
-
 (defn restart []
   (stop-dev)
   (start-dev))
 
-(restart)
+(comment
+  (restart))
+
