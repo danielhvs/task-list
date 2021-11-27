@@ -17,6 +17,11 @@
    (-> (ok)
        (assoc :body body))))
 
+(defn- cycle-status [status] ":todo or :done"
+  (status
+    {:todo :done
+     :done :todo}))
+
 (defn- new-task
   [task-name]
   {:name task-name
@@ -29,11 +34,14 @@
   (let [uuid (str->uuid id)]
     (get @db uuid)))
 
+(defn not-found []
+  (response/not-found "Not Found"))
+
 (defn get-task [request]
   (let [id (get-in request [:query-params :id])]
     (if-let [task (get-from-store id)]
       (ok task)
-      (response/not-found "Not Found"))))
+      (not-found))))
 
 (defn create-task [request]
   (let [task-name (get-in request [:query-params :name])
@@ -43,8 +51,17 @@
     (ok {:task task
          :id uuid})))
 
+(defn update-task [request]
+  (let [id (get-in request [:path-params :id])]
+    (if-let [task (get-from-store id)]
+      (do
+        (let [updated-task (update-in task [:status] cycle-status)]
+          (swap! db assoc (str->uuid id) updated-task)
+          (ok updated-task)))
+      (not-found))))
+
 (defn delete-task [request]
-  (let [id (get-in request [:query-params :id])
+  (let [id (get-in request [:path-params :id])
         uuid (str->uuid id)]
     (if-let [task (get-from-store id)]
       (do (swap! db dissoc uuid)
@@ -55,7 +72,8 @@
   (route/expand-routes
     #{["/task" :get get-task :route-name :get-task]
       ["/task" :post create-task :route-name :create-task]
-      ["/task" :delete delete-task :route-name :delete-task]}))
+      ["/task/:id" :patch update-task :route-name :update-task]
+      ["/task/:id" :delete delete-task :route-name :delete-task]}))
 
 (def service-map
   {::http/routes routes
@@ -85,15 +103,12 @@
 (defn json->clj [json]
   (edn/read-string json))
 
-(comment
-  (let [id (->> "/task?name=oi"
-                (test-api :post)
-                :body
-                json->clj
-                :id)]
-    (test-api :get (str "/task?id=" id))))
-
-(def id "45fbb23b-9853-4730-afab-ffb94ab73551")
-(test-api :get (str "/task?id=" id))
-(test-api :delete (str "/task?id=" id))
+(let [id (->> "/task?name=tchau"
+              (test-api :post)
+              :body
+              json->clj
+              :id)]
+  (test-api :get (str "/task?id=" id))
+  (test-api :patch (str "/task/" id))
+  (test-api :delete (str "/task/" id)))
 
