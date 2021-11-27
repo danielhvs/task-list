@@ -8,21 +8,29 @@
 (defonce server (atom nil))
 (defonce db (atom {}))
 
-@db
-
-(defn ok [body]
-  {:status 200 :body body
-   :headers {"Content-Type" "text/html"}})
-
-(defn get-task [request]
-  (let [id (get-in request [:query-params :id])
-        uuid (java.util.UUID/fromString id)]
-    (ok (get @db uuid))))
+(defn ok
+  ([]
+   {:status 200
+    :headers {"Content-Type" "text/html"}})
+  ([body]
+   (-> (ok)
+       (assoc :body body))))
 
 (defn- new-task
   [task-name]
   {:name task-name
    :status :todo})
+
+(defn str->uuid [id]
+  (java.util.UUID/fromString id))
+
+(defn get-from-store [id]
+  (let [uuid (str->uuid id)]
+    (get @db uuid)))
+
+(defn get-task [request]
+  (let [id (get-in request [:query-params :id])]
+    (ok (get-from-store id))))
 
 (defn create-task [request]
   (let [task-name (get-in request [:query-params :name])
@@ -32,7 +40,11 @@
     (ok {:task task
          :id uuid})))
 
-(defn delete-task [request])
+(defn delete-task [request]
+  (let [id (get-in request [:query-params :id])
+        uuid (str->uuid id)]
+    (swap! db dissoc uuid)
+    (ok)))
 
 (def routes
   (route/expand-routes
@@ -75,3 +87,5 @@
                 json->clj
                 :id)]
     (test-api :get (str "/task?id=" id))))
+
+(test-api :delete (str "/task?id=687d149c-ec5c-4ad0-8535-983da4f2decf"))
