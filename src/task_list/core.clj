@@ -11,6 +11,8 @@
 (defonce server (atom nil))
 (defonce db (atom {}))
 
+(def no-content {:status 204})
+
 (defn ok
   ([]
    {:status 200
@@ -60,7 +62,7 @@
     (if-let [task (get-from-store id)]
       (let [updated-task (update-in task [:status] cycle-status)]
         (swap! db assoc (str->uuid id) updated-task)
-        (ok updated-task))
+        no-content)
       (not-found))))
 
 (defn delete-task [request]
@@ -111,7 +113,8 @@
               :body
               json->clj
               :id)]
-  (test-api :get (str "/task?id=" id))
-  (test-api :patch (str "/task/" id))
-  (test-api :delete (str "/task/" id)))
+  (println (str "get" (test-api :get (str "/task?id=" id))))
+  (println (str "patch " (test-api :patch (str "/task/" id))))
+  (println (str "delete " (test-api :delete (str "/task/" id))))
+  (println (str "delete " (test-api :delete (str "/task/" id)))))
 
