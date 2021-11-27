@@ -4,7 +4,9 @@
     [io.pedestal.http :as http]
     [io.pedestal.http.route :as route]
     [io.pedestal.test :as test]
-    [ring.util.response :as response]))
+    [ring.util.response :as response])
+  (:import
+    (java.util UUID)))
 
 (defonce server (atom nil))
 (defonce db (atom {}))
@@ -17,7 +19,9 @@
    (-> (ok)
        (assoc :body body))))
 
-(defn- cycle-status [status] ":todo or :done"
+(defn- cycle-status
+  ":todo or :done"
+  [status]
   (status
     {:todo :done
      :done :todo}))
@@ -28,7 +32,7 @@
    :status :todo})
 
 (defn str->uuid [id]
-  (java.util.UUID/fromString id))
+  (UUID/fromString id))
 
 (defn get-from-store [id]
   (let [uuid (str->uuid id)]
@@ -45,7 +49,7 @@
 
 (defn create-task [request]
   (let [task-name (get-in request [:query-params :name])
-        uuid (java.util.UUID/randomUUID)
+        uuid (UUID/randomUUID)
         task (new-task task-name)]
     (swap! db assoc uuid task)
     (ok {:task task
@@ -54,10 +58,9 @@
 (defn update-task [request]
   (let [id (get-in request [:path-params :id])]
     (if-let [task (get-from-store id)]
-      (do
-        (let [updated-task (update-in task [:status] cycle-status)]
-          (swap! db assoc (str->uuid id) updated-task)
-          (ok updated-task)))
+      (let [updated-task (update-in task [:status] cycle-status)]
+        (swap! db assoc (str->uuid id) updated-task)
+        (ok updated-task))
       (not-found))))
 
 (defn delete-task [request]
