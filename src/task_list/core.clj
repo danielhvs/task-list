@@ -3,7 +3,8 @@
     [clojure.edn :as edn]
     [io.pedestal.http :as http]
     [io.pedestal.http.route :as route]
-    [io.pedestal.test :as test]))
+    [io.pedestal.test :as test]
+    [ring.util.response :as response]))
 
 (defonce server (atom nil))
 (defonce db (atom {}))
@@ -30,7 +31,9 @@
 
 (defn get-task [request]
   (let [id (get-in request [:query-params :id])]
-    (ok (get-from-store id))))
+    (if-let [task (get-from-store id)]
+      (ok task)
+      (response/not-found "Not Found"))))
 
 (defn create-task [request]
   (let [task-name (get-in request [:query-params :name])
@@ -43,8 +46,10 @@
 (defn delete-task [request]
   (let [id (get-in request [:query-params :id])
         uuid (str->uuid id)]
-    (swap! db dissoc uuid)
-    (ok)))
+    (if-let [task (get-from-store id)]
+      (do (swap! db dissoc uuid)
+          (ok task))
+      (response/not-found "Not Found"))))
 
 (def routes
   (route/expand-routes
@@ -88,4 +93,7 @@
                 :id)]
     (test-api :get (str "/task?id=" id))))
 
-(test-api :delete (str "/task?id=687d149c-ec5c-4ad0-8535-983da4f2decf"))
+(def id "45fbb23b-9853-4730-afab-ffb94ab73551")
+(test-api :get (str "/task?id=" id))
+(test-api :delete (str "/task?id=" id))
+
