@@ -1,7 +1,8 @@
 (ns task-list.core
   (:require
     [io.pedestal.http :as http]
-    [io.pedestal.http.route :as route]))
+    [io.pedestal.http.route :as route]
+    [io.pedestal.test :as test]))
 
 (defonce server (atom nil))
 
@@ -47,3 +48,7 @@
 (comment
   (restart))
 
+(defn test-api [verb url]
+  (test/response-for (::http/service-fn @server) verb url))
+
+(test-api :get "/greet?name=oi")
